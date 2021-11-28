@@ -536,7 +536,50 @@ SENTRY_API void sentry_uuid_as_bytes(const sentry_uuid_t *uuid, char bytes[16]);
 /**
  * Formats the uuid into a string buffer.
  */
-SENTRY_API void sentry_uuid_as_string(const sentry_uuid_t *uuid, char str[37]);
+SENTRY_API void sentry_uuid_as_string(const sentry_uuid_t *uuid, char str[33]);
+
+/**
+ * A Span ID (64 bit value)
+ */
+typedef struct sentry_span_id_s {
+    char bytes[8];
+} sentry_span_id_t;
+
+
+/**
+ * Creates the nil span_id.
+ */
+SENTRY_API sentry_span_id_t sentry_span_id_nil(void);
+
+/**
+ * Creates a new span_id.
+ */
+SENTRY_API sentry_span_id_t sentry_span_id_new(void);
+
+/**
+ * Parses a span_id from a string.
+ */
+SENTRY_API sentry_span_id_t sentry_span_id_from_string(const char *str);
+
+/**
+ * Creates a span_id from bytes.
+ */
+SENTRY_API sentry_span_id_t sentry_span_id_from_bytes(const char bytes[8]);
+
+/**
+ * Checks if the span_id is nil.
+ */
+SENTRY_API int sentry_span_id_is_nil(const sentry_span_id_t *span_id);
+
+/**
+ * Returns the bytes of the span_id.
+ */
+SENTRY_API void sentry_span_id_as_bytes(const sentry_span_id_t *span_id, char bytes[8]);
+
+/**
+ * Formats the span_id into a string buffer.
+ */
+SENTRY_API void sentry_span_id_as_string(const sentry_span_id_t *span_id, char str[17]);
 
 /**
  * A Sentry Envelope.
@@ -757,6 +800,20 @@ SENTRY_API void sentry_options_set_sample_rate(
  * Gets the sample rate.
  */
 SENTRY_API double sentry_options_get_sample_rate(const sentry_options_t *opts);
+
+
+/**
+ * Sets the tracing sample rate, which should be a double between `0.0` and `1.0`.
+ * Sentry will randomly discard any tracing event that is captured using
+ * `sentry_capture_event` when a sample rate < 1 is set.
+ */
+SENTRY_API void sentry_options_set_trace_sample_rate(
+    sentry_options_t *opts, double sample_rate);
+
+/**
+ * Gets the tracing sample rate.
+ */
+SENTRY_API double sentry_options_get_trace_sample_rate(const sentry_options_t *opts);
 
 /**
  * Sets the release.
@@ -1156,6 +1213,11 @@ SENTRY_API void sentry_remove_extra(const char *key);
 SENTRY_API void sentry_set_context(const char *key, sentry_value_t value);
 
 /**
+ * Gets a context object.
+ */
+SENTRY_API sentry_value_t sentry_get_context(const char *key);
+
+/**
  * Removes the context object with the specified key.
  */
 SENTRY_API void sentry_remove_context(const char *key);
@@ -1197,6 +1259,32 @@ SENTRY_API void sentry_start_session(void);
  * Ends a session.
  */
 SENTRY_API void sentry_end_session(void);
+
+/**
+ * Creates and starts a new tracing transaction event value.
+ * Must be finished by calling sentry_value_end_transaction().
+ */
+SENTRY_API sentry_value_t sentry_value_new_transaction_event(
+    const char *transaction, const char *op);
+
+/**
+ * Finishes tracing transaction event value which was started by
+ * sentry_value_new_transaction_event()
+ */
+SENTRY_API void sentry_value_end_transaction(sentry_value_t transaction);
+
+/**
+ * Creates and starts a new child span value.
+ * Must be finished by calling sentry_value_end_span().
+ */
+SENTRY_API sentry_value_t sentry_value_new_span(sentry_value_t transaction,
+    const sentry_value_t parent_span, const char *op);
+
+/**
+ * Finishes tracing span value which was started by
+ * sentry_value_new_span()
+ */
+SENTRY_API void sentry_value_end_span(sentry_value_t span);
 
 #ifdef __cplusplus
 }

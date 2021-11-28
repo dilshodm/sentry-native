@@ -1026,6 +1026,103 @@ sentry_value_new_message_event(
     return rv;
 }
 
+static void
+sentry__add_span_timestamp(sentry_value_t span, const char *timestamp_key)
+{
+    sentry_value_set_by_key(span, timestamp_key,
+        sentry__value_new_string_owned(
+            sentry__msec_time_to_iso8601(sentry__msec_time())));
+}
+
+static void
+sentry__add_span_details(sentry_value_t span, sentry_value_t trace_id,
+    const char *op)
+{
+    sentry__add_span_timestamp(span, "start_timestamp");
+    sentry_value_set_by_key(span, "trace_id", trace_id);
+
+    sentry_span_id_t span_id = sentry_span_id_new();
+    char span_id_str[17];
+    sentry_span_id_as_string(&span_id, span_id_str);
+    sentry_value_set_by_key(span, "span_id",
+        sentry_value_new_string(span_id_str));
+
+    sentry_value_set_by_key(span, "op", sentry_value_new_string(op));
+}
+
+void
+sentry__value_add_transaction_span(
+    sentry_value_t transaction, sentry_value_t span)
+{
+    sentry_value_t spans_list = sentry_value_get_by_key(transaction, "spans");
+    if (sentry_value_is_null(spans_list)) {
+        spans_list = sentry_value_new_list();
+        sentry_value_set_by_key(transaction, "spans", spans_list);
+    }
+
+    sentry_value_append(spans_list, span);
+}
+
+sentry_value_t
+sentry_value_new_transaction_event(const char *transaction, const char *op)
+{
+    sentry_value_t rv = sentry_value_new_event();
+
+    sentry_value_set_by_key(
+        rv, "transaction", sentry_value_new_string(transaction));
+    sentry_value_set_by_key(
+        rv, "level", sentry__value_new_level(SENTRY_LEVEL_INFO));
+    sentry_value_set_by_key(rv, "type", sentry_value_new_string("transaction"));
+
+    sentry_uuid_t trace_uuid = sentry_uuid_new_v4();
+    char trace_id_str[33];
+    sentry_uuid_as_string(&trace_uuid, trace_id_str);
+
+    sentry__add_span_details(rv, sentry_value_new_string(trace_id_str), op);
+
+    return rv;
+}
+
+void
+sentry_value_end_transaction(sentry_value_t transaction)
+{
+    sentry_value_end_span(transaction);
+}
+
+sentry_value_t
+sentry_value_new_span(sentry_value_t transaction,
+    const sentry_value_t parent_span, const char *op)
+{
+    // Search for the span id in the parent span
+    sentry_value_t trace_id = sentry_value_get_by_key(parent_span, "trace_id");
+    sentry_value_t parent_id = sentry_value_get_by_key(parent_span, "span_id");
+    if (sentry_value_is_null(parent_id)) {
+        // Return null if parent_span is not a span value
+        return sentry_value_new_null();
+    }
+
+    sentry_value_t rv = sentry_value_new_object();
+
+    sentry_value_incref(parent_id);
+    sentry_value_set_by_key(rv, "parent_span_id", parent_id);
+
+    sentry_value_incref(trace_id);
+    sentry__add_span_details(rv, trace_id, op);
+
+    sentry__value_add_transaction_span(transaction, rv);
+
+    return rv;
+}
+
+void
+sentry_value_end_span(sentry_value_t span)
+{
+    if (sentry_value_is_null(span)) {
+        return;
+    }
+    sentry__add_span_timestamp(span, "timestamp");
+}
+
 sentry_value_t
 sentry_value_new_breadcrumb(const char *type, const char *message)
 {
@@ -1149,3 +1246,4 @@ sentry_event_value_add_stacktrace(sentry_value_t event, void **ips, size_t len)
 
     sentry_event_add_thread(event, thread);
 }
+

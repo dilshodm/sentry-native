@@ -228,7 +228,7 @@ sentry__jsonwriter_write_uuid(
         sentry__jsonwriter_write_null(jw);
         return;
     }
-    char buf[37];
+    char buf[33];
     sentry_uuid_as_string(uuid, buf);
     sentry__jsonwriter_write_str(jw, buf);
 }

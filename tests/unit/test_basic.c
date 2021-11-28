@@ -12,7 +12,7 @@ send_envelope_test_basic(const sentry_envelope_t *envelope, void *data)
     TEST_CHECK(!sentry_value_is_null(event));
     const char *event_id
         = sentry_value_as_string(sentry_value_get_by_key(event, "event_id"));
-    TEST_CHECK_STRING_EQUAL(event_id, "4c035723-8638-4c3a-923f-2ab9d08b4018");
+    TEST_CHECK_STRING_EQUAL(event_id, "4c03572386384c3a923f2ab9d08b4018");
 
     if (*called == 1) {
         const char *msg = sentry_value_as_string(sentry_value_get_by_key(

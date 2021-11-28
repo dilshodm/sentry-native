@@ -205,7 +205,8 @@ sentry_envelope_get_event(const sentry_envelope_t *envelope)
 }
 
 sentry_envelope_item_t *
-sentry__envelope_add_event(sentry_envelope_t *envelope, sentry_value_t event)
+sentry__envelope_add_event(sentry_envelope_t *envelope, sentry_value_t event,
+    const char *event_type)
 {
     sentry_envelope_item_t *item = envelope_add_item(envelope);
     if (!item) {
@@ -224,7 +225,7 @@ sentry__envelope_add_event(sentry_envelope_t *envelope, sentry_value_t event)
     item->payload = sentry__jsonwriter_into_string(jw, &item->payload_len);
 
     sentry__envelope_item_set_header(
-        item, "type", sentry_value_new_string("event"));
+        item, "type", sentry_value_new_string(event_type));
     sentry_value_t length = sentry_value_new_int32((int32_t)item->payload_len);
     sentry__envelope_item_set_header(item, "length", length);
 

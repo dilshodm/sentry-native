@@ -31,6 +31,7 @@ struct sentry_attachment_s {
  */
 typedef struct sentry_options_s {
     double sample_rate;
+    double trace_sample_rate;
     sentry_dsn_t *dsn;
     char *release;
     char *environment;

@@ -49,6 +49,7 @@ sentry_options_new(void)
     opts->backend = sentry__backend_new();
     opts->transport = sentry__transport_new_default();
     opts->sample_rate = 1.0;
+    opts->trace_sample_rate = 1.0;
     opts->refcount = 1;
     opts->shutdown_timeout = SENTRY_DEFAULT_SHUTDOWN_TIMEOUT;
     return opts;
@@ -144,6 +145,23 @@ double
 sentry_options_get_sample_rate(const sentry_options_t *opts)
 {
     return opts->sample_rate;
+}
+
+void
+sentry_options_set_trace_sample_rate(sentry_options_t *opts, double sample_rate)
+{
+    if (sample_rate < 0.0) {
+        sample_rate = 0.0;
+    } else if (sample_rate > 1.0) {
+        sample_rate = 1.0;
+    }
+    opts->trace_sample_rate = sample_rate;
+}
+
+double
+sentry_options_get_trace_sample_rate(const sentry_options_t *opts)
+{
+    return opts->trace_sample_rate;
 }
 
 void

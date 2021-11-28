@@ -150,7 +150,7 @@ SENTRY_TEST(buildid_fallback)
         "1c304742f114215453a8a777f6cdb3a2b8505e11");
     TEST_CHECK_STRING_EQUAL(sentry_value_as_string(sentry_value_get_by_key(
                                 with_id_val, "debug_id")),
-        "4247301c-14f1-5421-53a8-a777f6cdb3a2");
+        "4247301c14f1542153a8a777f6cdb3a2");
     sentry_value_decref(with_id_val);
 
     sentry_value_t x86_exe_val = sentry_value_new_object();
@@ -167,7 +167,7 @@ SENTRY_TEST(buildid_fallback)
         "b4c24a6cc995c17fb18a65184a65863cfc01c673");
     TEST_CHECK_STRING_EQUAL(sentry_value_as_string(sentry_value_get_by_key(
                                 x86_exe_val, "debug_id")),
-        "6c4ac2b4-95c9-7fc1-b18a-65184a65863c");
+        "6c4ac2b495c97fc1b18a65184a65863c");
     sentry_value_decref(x86_exe_val);
 
     sentry_value_t without_id_val = sentry_value_new_object();
@@ -183,7 +183,7 @@ SENTRY_TEST(buildid_fallback)
         sentry_value_get_by_key(without_id_val, "code_id")));
     TEST_CHECK_STRING_EQUAL(sentry_value_as_string(sentry_value_get_by_key(
                                 without_id_val, "debug_id")),
-        "29271919-a2ef-129d-9aac-be85a0948d9c");
+        "29271919a2ef129d9aacbe85a0948d9c");
     sentry_value_decref(without_id_val);
 
     sentry_value_t x86_lib_val = sentry_value_new_object();
@@ -199,7 +199,7 @@ SENTRY_TEST(buildid_fallback)
         sentry_value_is_null(sentry_value_get_by_key(x86_lib_val, "code_id")));
     TEST_CHECK_STRING_EQUAL(sentry_value_as_string(sentry_value_get_by_key(
                                 x86_lib_val, "debug_id")),
-        "7fa824da-38f1-b87c-04df-718fda64990c");
+        "7fa824da38f1b87c04df718fda64990c");
     sentry_value_decref(x86_lib_val);
 
     sentry__path_free(dir);

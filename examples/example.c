@@ -72,6 +72,8 @@ main(int argc, char **argv)
     sentry_options_set_auto_session_tracking(options, false);
     sentry_options_set_symbolize_stacktraces(options, true);
 
+    sentry_options_set_trace_sample_rate(options, 1.0);
+
     sentry_options_set_environment(options, "development");
     // sentry defaults this to the `SENTRY_RELEASE` env variable
     if (!has_arg(argc, argv, "release-env")) {
@@ -140,6 +142,29 @@ main(int argc, char **argv)
 
     if (has_arg(argc, argv, "start-session")) {
         sentry_start_session();
+    }
+
+    if (has_arg(argc, argv, "span")) {
+        for (int i = 0; i < 1; ++i) {
+            sentry_value_t event = sentry_value_new_transaction_event("span-test", "sleep");
+            usleep(250 * 1000);
+            sentry_value_t span1 = sentry_value_new_span(event, event, "span1");
+            sentry_value_t span11 = sentry_value_new_span(event, span1, "span11");
+            usleep(100 * 1000);
+            sentry_value_end_span(span11);
+
+            sentry_value_t span12 = sentry_value_new_span(event, span1, "span12");
+            usleep(50 * 1000);
+            sentry_value_end_span(span12);
+            sentry_value_end_span(span1);
+
+            sentry_value_t span2 = sentry_value_new_span(event, event, "span2");
+            usleep(75 * 1000);
+            sentry_value_end_span(span2);
+
+            sentry_value_end_transaction(event);
+            sentry_capture_event(event);
+        }
     }
 
     if (has_arg(argc, argv, "overflow-breadcrumbs")) {

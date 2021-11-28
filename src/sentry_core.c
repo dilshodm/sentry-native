@@ -338,6 +338,41 @@ sentry__capture_envelope(
     sentry__transport_send_envelope(transport, envelope);
 }
 
+void
+sentry__move_value(
+    sentry_value_t from, sentry_value_t to, const char *key)
+{
+    if (sentry_value_is_null(from) || sentry_value_is_null(to) || !key) {
+        return;
+    }
+
+    sentry_value_t val = sentry_value_get_by_key_owned(from, key);
+    if (!sentry_value_is_null(val)) {
+        sentry_value_set_by_key(to, key, val);
+        sentry_value_remove_by_key(from, key);
+    }
+}
+
+void
+sentry__apply_transaction_trace_context(sentry_value_t transaction)
+{
+    sentry_value_t contexts = sentry_value_get_by_key(transaction, "contexts");
+    if (sentry_value_is_null(contexts)) {
+        contexts = sentry_value_new_object();
+        sentry_value_set_by_key(transaction, "contexts", contexts);
+    }
+
+    sentry_value_t trace = sentry_value_new_object();
+    sentry__move_value(transaction, trace, "trace_id");
+    sentry__move_value(transaction, trace, "span_id");
+    sentry__move_value(transaction, trace, "parent_span_id");
+    sentry__move_value(transaction, trace, "op");
+    sentry__move_value(transaction, trace, "description");
+    sentry__move_value(transaction, trace, "status");
+
+    sentry_value_set_by_key(contexts, "trace", trace);
+}
+
 static bool
 event_is_considered_error(sentry_value_t event)
 {
@@ -395,9 +430,22 @@ sentry__prepare_event(const sentry_options_t *options, sentry_value_t event,
         sentry__record_errors_on_current_session(1);
     }
 
+    double sample_rate = options->sample_rate;
+    char *event_type_str = "event";
+
+    // Check if it's trace event or normal event
+    const char *event_type
+        = sentry_value_as_string(sentry_value_get_by_key(event, "type"));
+    const bool is_tracing_event = sentry__string_eq(event_type, "transaction");
+
+    if (is_tracing_event) {
+        sample_rate = options->trace_sample_rate;
+        event_type_str = "transaction";
+    }
+
     uint64_t rnd;
-    if (options->sample_rate < 1.0 && !sentry__getrandom(&rnd, sizeof(rnd))
-        && ((double)rnd / (double)UINT64_MAX) > options->sample_rate) {
+    if (sample_rate < 1.0 && !sentry__getrandom(&rnd, sizeof(rnd))
+        && ((double)rnd / (double)UINT64_MAX) > sample_rate) {
         SENTRY_DEBUG("throwing away event due to sample rate");
         goto fail;
     }
@@ -408,7 +456,16 @@ sentry__prepare_event(const sentry_options_t *options, sentry_value_t event,
         if (!options->symbolize_stacktraces) {
             mode &= ~SENTRY_SCOPE_STACKTRACES;
         }
+        if (is_tracing_event) {
+            mode &= ~SENTRY_SCOPE_STACKTRACES & ~SENTRY_SCOPE_MODULES;
+        }
+
         sentry__scope_apply_to_event(scope, options, event, mode);
+
+        if (is_tracing_event) {
+            // This must be called AFTER sentry__scope_apply_to_event()
+            sentry__apply_transaction_trace_context(event);
+        }
     }
 
     if (options->before_send_func) {
@@ -423,7 +480,7 @@ sentry__prepare_event(const sentry_options_t *options, sentry_value_t event,
 
     sentry__ensure_event_id(event, event_id);
     envelope = sentry__envelope_new();
-    if (!envelope || !sentry__envelope_add_event(envelope, event)) {
+    if (!envelope || !sentry__envelope_add_event(envelope, event, event_type_str)) {
         goto fail;
     }
 
@@ -466,8 +523,8 @@ sentry_handle_exception(const sentry_ucontext_t *uctx)
 sentry_uuid_t
 sentry__new_event_id(void)
 {
-#ifdef SENTRY_UNITTEST
-    return sentry_uuid_from_string("4c035723-8638-4c3a-923f-2ab9d08b4018");
+#if SENTRY_UNITTEST
+    return sentry_uuid_from_string("4c03572386384c3a923f2ab9d08b4018");
 #else
     return sentry_uuid_new_v4();
 #endif
@@ -573,6 +630,17 @@ sentry_set_context(const char *key, sentry_value_t value)
     SENTRY_WITH_SCOPE_MUT (scope) {
         sentry_value_set_by_key(scope->contexts, key, value);
     }
+}
+
+sentry_value_t
+sentry_get_context(const char *key)
+{
+    sentry_value_t rv;
+    SENTRY_WITH_SCOPE_MUT (scope) {
+        rv = sentry_value_get_by_key(scope->contexts, key);
+    }
+
+    return rv;
 }
 
 void

@@ -33,8 +33,8 @@ sentry_uuid_t sentry__envelope_get_event_id(const sentry_envelope_t *envelope);
 /**
  * Add an event to this envelope.
  */
-sentry_envelope_item_t *sentry__envelope_add_event(
-    sentry_envelope_t *envelope, sentry_value_t event);
+sentry_envelope_item_t *sentry__envelope_add_event(sentry_envelope_t *envelope,
+    sentry_value_t event, const char *event_type);
 
 /**
  * Add a session to this envelope.

@@ -15,7 +15,7 @@ SENTRY_TEST(basic_http_request_preparation_for_event)
     sentry_value_t event = sentry_value_new_object();
     sentry_value_set_by_key(
         event, "event_id", sentry__value_new_uuid(&event_id));
-    sentry__envelope_add_event(envelope, event);
+    sentry__envelope_add_event(envelope, event, "event");
 
     sentry_prepared_http_request_t *req
         = sentry__prepare_http_request(envelope, dsn, NULL);
@@ -23,9 +23,9 @@ SENTRY_TEST(basic_http_request_preparation_for_event)
     TEST_CHECK_STRING_EQUAL(
         req->url, "https://sentry.invalid:443/api/42/envelope/");
     TEST_CHECK_STRING_EQUAL(req->body,
-        "{\"event_id\":\"c993afb6-b4ac-48a6-b61b-2558e601d65d\"}\n"
-        "{\"type\":\"event\",\"length\":51}\n"
-        "{\"event_id\":\"c993afb6-b4ac-48a6-b61b-2558e601d65d\"}");
+        "{\"event_id\":\"c993afb6b4ac48a6b61b2558e601d65d\"}\n"
+        "{\"type\":\"event\",\"length\":47}\n"
+        "{\"event_id\":\"c993afb6b4ac48a6b61b2558e601d65d\"}");
     sentry__prepared_http_request_free(req);
     sentry_envelope_free(envelope);
 
@@ -42,7 +42,7 @@ SENTRY_TEST(basic_http_request_preparation_for_event_with_attachment)
     sentry_value_t event = sentry_value_new_object();
     sentry_value_set_by_key(
         event, "event_id", sentry__value_new_uuid(&event_id));
-    sentry__envelope_add_event(envelope, event);
+    sentry__envelope_add_event(envelope, event, "event");
     char msg[] = "Hello World!";
     sentry__envelope_add_from_buffer(
         envelope, msg, sizeof(msg) - 1, "attachment");
@@ -53,9 +53,9 @@ SENTRY_TEST(basic_http_request_preparation_for_event_with_attachment)
     TEST_CHECK_STRING_EQUAL(
         req->url, "https://sentry.invalid:443/api/42/envelope/");
     TEST_CHECK_STRING_EQUAL(req->body,
-        "{\"event_id\":\"c993afb6-b4ac-48a6-b61b-2558e601d65d\"}\n"
-        "{\"type\":\"event\",\"length\":51}\n"
-        "{\"event_id\":\"c993afb6-b4ac-48a6-b61b-2558e601d65d\"}\n"
+        "{\"event_id\":\"c993afb6b4ac48a6b61b2558e601d65d\"}\n"
+        "{\"type\":\"event\",\"length\":47}\n"
+        "{\"event_id\":\"c993afb6b4ac48a6b61b2558e601d65d\"}\n"
         "{\"type\":\"attachment\",\"length\":12}\n"
         "Hello World!");
     sentry__prepared_http_request_free(req);
@@ -106,7 +106,7 @@ SENTRY_TEST(serialize_envelope)
     sentry_value_set_by_key(
         event, "event_id", sentry__value_new_uuid(&event_id));
     sentry_value_set_by_key(event, "some-context", sentry_value_new_null());
-    sentry__envelope_add_event(envelope, event);
+    sentry__envelope_add_event(envelope, event, "event");
 
     char dmp[] = "MDMP";
     sentry__envelope_add_from_buffer(
@@ -122,9 +122,9 @@ SENTRY_TEST(serialize_envelope)
 
     TEST_CHECK_STRING_EQUAL(str,
         "{\"dsn\":\"https://foo@sentry.invalid/42\","
-        "\"event_id\":\"c993afb6-b4ac-48a6-b61b-2558e601d65d\"}\n"
-        "{\"type\":\"event\",\"length\":71}\n"
-        "{\"event_id\":\"c993afb6-b4ac-48a6-b61b-2558e601d65d\",\"some-"
+        "\"event_id\":\"c993afb6b4ac48a6b61b2558e601d65d\"}\n"
+        "{\"type\":\"event\",\"length\":67}\n"
+        "{\"event_id\":\"c993afb6b4ac48a6b61b2558e601d65d\",\"some-"
         "context\":null}\n"
         "{\"type\":\"minidump\",\"length\":4}\n"
         "MDMP\n"

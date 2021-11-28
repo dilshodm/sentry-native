@@ -40,6 +40,8 @@ sentry_target_sources_cwd(sentry
 	sentry_utils.h
 	sentry_uuid.c
 	sentry_uuid.h
+	sentry_span_id.c
+	sentry_span_id.h
 	sentry_value.c
 	sentry_value.h
 	path/sentry_path.c
